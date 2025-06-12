@@ -9,13 +9,13 @@ const photosContainer = document.getElementById('photos');
 
 // Lista de caminhos para suas fotos
 const photoUrls = [
-    'image1.JPG',
-    'image7.JPG',
-    'image3.JPG',
-    'image4.JPG',
-    'image5.JPG',
-    'image6.JPG',
-    'image8.JPG',
+    'image1.jpg',
+    'image7.jpg',
+    'image3.jpg',
+    'image4.jpg',
+    'image5.jpg',
+    'image6.jpg',
+    'image8.jpg',
     'image9.JPG'
    
 ];
