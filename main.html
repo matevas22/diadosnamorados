@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Carregando com Corações</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    #stars {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 0;
+      display: block;
+    }
+    .container {
+      display: flex;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      padding: 0 16px;
+      box-sizing: border-box;
+    }
+    .button.modern-btn {
+      background: #ff6a88;
+      color: #fff;
+      padding: 18px 40px;
+      border-radius: 40px;
+      font-size: 1.5rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 24px #ff6a8833;
+      transition: background 0.2s, transform 0.1s;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      user-select: none;
+    }
+    .button.modern-btn:active {
+      transform: scale(0.97);
+    }
+    .arrow {
+      vertical-align: middle;
+    }
+    .loading-heart {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-size: 2rem;
+      color: #ff6a88;
+      z-index: 10;
+      position: absolute;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: transparent;
+    }
+    .loading-heart svg {
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse {
+      to { transform: scale(1.15);}
+    }
+    #percent {
+      margin-top: 16px;
+      font-weight: bold;
+      font-size: 2rem;
+      color: #ff6a88;
+      text-shadow: 0 2px 8px #000;
+    }
+    #hearts-container {
+      pointer-events: none;
+      position: fixed;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      z-index: 15;
+    }
+    .heart-float {
+      position: absolute;
+      width: 32px; height: 32px;
+      animation: floatUp 2.2s linear forwards;
+      opacity: 0.85;
+      will-change: transform, opacity;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(1); opacity: 0.85;}
+      80% { opacity: 1;}
+      100% { transform: translateY(-80vh) scale(1.2); opacity: 0;}
+    }
+
+    /* Responsividade para telas menores */
+    @media (max-width: 600px) {
+      .container {
+      width: 100vw;
+      padding: 0 8px;
+      }
+      .button.modern-btn {
+      font-size: 1.1rem;
+      padding: 14px 18px;
+      gap: 8px;
+      }
+      .arrow {
+      width: 20px;
+      height: 20px;
+      }
+      .loading-heart {
+      font-size: 1.2rem;
+      }
+      #percent {
+      font-size: 1.2rem;
+      }
+      .heart-float {
+      width: 22px;
+      height: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="container" id="main-container">
+  <button class="button modern-btn" id="start-btn">
+    <span>Clique aqui</span>
+    <svg class="arrow" width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+<div class="loading-heart" id="loading-heart">
+  <svg width="64" height="64" viewBox="0 0 64 64" fill="#ff6a88">
+    <path d="M32 58s-22-13.3-22-30A14 14 0 0132 16a14 14 0 0122 12c0 16.7-22 30-22 30z"/>
+  </svg>
+  <div id="percent">0%</div>
+</div>
+<div id="hearts-container"></div>
+<script>
+// Fundo de estrelas animadas
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let w = window.innerWidth, h = window.innerHeight;
+function resizeCanvas() {
+  w = window.innerWidth;
+  h = window.innerHeight;
+  canvas.width = w;
+  canvas.height = h;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+/* Espaço animado com estrelas, estrelas cadentes e nebulosas em toda a página */
+const stars = [];
+const shootingStars = [];
+const nebulas = [];
+const numStars = 400; // Mais estrelas
+const maxShootingStars = 8; // Mais estrelas cadentes simultâneas
+
+function randomBetween(a, b) {
+  return a + Math.random() * (b - a);
+}
+
+// Cria estrelas normais
+for (let i = 0; i < numStars; i++) {
+  stars.push({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    radius: randomBetween(0.3, 2.2),
+    speed: randomBetween(0.03, 0.25),
+    alpha: randomBetween(0.2, 1)
+  });
+}
+
+// Cria nebulosas suaves
+for (let i = 0; i < 4; i++) {
+  nebulas.push({
+    x: randomBetween(0, w),
+    y: randomBetween(0, h * 0.7),
+    r: randomBetween(120, 260),
+    color: `rgba(${randomBetween(120,200)},${randomBetween(80,120)},${randomBetween(180,255)},${randomBetween(0.07,0.13)})`
+  });
+}
+
+// Cria uma estrela cadente
+function createShootingStar() {
+  const y = randomBetween(0, h * 0.7);
+  shootingStars.push({
+    x: randomBetween(w * 0.2, w * 0.95),
+    y: y,
+    len: randomBetween(120, 260),
+    speed: randomBetween(12, 22),
+    size: randomBetween(1.2, 2.7),
+    alpha: 1,
+    life: 0,
+    angle: randomBetween(Math.PI * 0.62, Math.PI * 0.8)
+  });
+}
+
+// Fundo gradiente escuro
+function drawBackground() {
+  const gradient = ctx.createLinearGradient(0, 0, 0, h);
+  gradient.addColorStop(0, "#070716");
+  gradient.addColorStop(0.5, "#18182e");
+  gradient.addColorStop(1, "#0a0a1a");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, w, h);
+
+  // Nebulosas
+  for (const n of nebulas) {
+    ctx.save();
+    ctx.globalAlpha = 1;
+    const radgrad = ctx.createRadialGradient(n.x, n.y, n.r * 0.2, n.x, n.y, n.r);
+    radgrad.addColorStop(0, n.color);
+    radgrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = radgrad;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawStars() {
+  drawBackground();
+
+  // Estrelas normais
+  stars.forEach(star => {
+    ctx.save();
+    ctx.globalAlpha = star.alpha;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.shadowColor = "#fff";
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.restore();
+
+    // Movimento lento
+    star.x -= star.speed;
+    if (star.x < 0) {
+      star.x = w;
+      star.y = Math.random() * h;
+    }
+  });
+
+  // Estrelas cadentes
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const s = shootingStars[i];
+    ctx.save();
+    ctx.globalAlpha = s.alpha;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = s.size;
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(
+      s.x + s.len * -Math.cos(s.angle),
+      s.y + s.len * Math.sin(s.angle)
+    );
+    ctx.shadowColor = "#fff";
+    ctx.shadowBlur = 24;
+    ctx.stroke();
+    ctx.restore();
+
+    s.x -= s.speed * Math.cos(s.angle);
+    s.y += s.speed * Math.sin(s.angle);
+    s.alpha -= 0.012;
+    s.life++;
+
+    if (s.alpha <= 0 || s.x < -200 || s.y > h + 200) {
+      shootingStars.splice(i, 1);
+    }
+  }
+
+  // Chance de criar estrela cadente, limitado ao máximo
+  if (shootingStars.length < maxShootingStars && Math.random() < 0.07) createShootingStar();
+
+  requestAnimationFrame(drawStars);
+}
+
+window.addEventListener('resize', () => {
+  w = window.innerWidth;
+  h = window.innerHeight;
+  canvas.width = w;
+  canvas.height = h;
+  // Reposiciona nebulosas
+  nebulas.forEach(n => {
+    n.x = randomBetween(0, w);
+    n.y = randomBetween(0, h * 0.7);
+  });
+});
+
+drawStars();
+
+// Coração carregando e corações flutuantes
+const percentEl = document.getElementById('percent');
+const loadingHeart = document.getElementById('loading-heart');
+const mainContainer = document.getElementById('main-container');
+const heartsContainer = document.getElementById('hearts-container');
+const startBtn = document.getElementById('start-btn');
+
+let percent = 0;
+let loadingStarted = false;
+
+function animateLoading() {
+  if (percent < 100) {
+    percent += Math.floor(Math.random()*4)+1;
+    if (percent > 100) percent = 100;
+    percentEl.textContent = percent + '%';
+    if (percent % 8 === 0) createFloatingHeart();
+    setTimeout(animateLoading, 40 + Math.random()*60);
+  } else {
+    percentEl.textContent = '100%';
+    setTimeout(showHearts, 400);
+  }
+}
+function showHearts() {
+  loadingHeart.style.display = 'none';
+  // Solta vários corações subindo
+  for (let i = 0; i < 24; i++) {
+    setTimeout(() => {
+      createFloatingHeart();
+    }, i*80);
+  }
+  setTimeout(() => {
+    // Redireciona após 1.2s
+    window.location.href = 'index.html';
+  }, 2200);
+}
+function createFloatingHeart() {
+  const heart = document.createElement('div');
+  heart.className = 'heart-float';
+  heart.style.left = (10 + Math.random()*80) + 'vw';
+  heart.style.bottom = '0';
+  heart.innerHTML = `<svg viewBox="0 0 32 32" fill="#ff6a88"><path d="M16 29s-11-6.7-11-15A7 7 0 0116 7a7 7 0 0111 7c0 8.3-11 15-11 15z"/></svg>`;
+  heartsContainer.appendChild(heart);
+  setTimeout(() => heart.remove(), 2200);
+}
+
+// Iniciar carregamento ao clicar no botão
+startBtn.addEventListener('click', () => {
+  if (loadingStarted) return;
+  loadingStarted = true;
+  mainContainer.style.display = 'none';
+  loadingHeart.style.display = 'flex';
+  percent = 0;
+  percentEl.textContent = '0%';
+  animateLoading();
+});
+
+</script>
+</body>
+</html>
